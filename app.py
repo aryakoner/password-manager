@@ -1,37 +1,74 @@
-# app.py
 import os
+import pyperclip
 from cryptography.fernet import Fernet
+from tkinter import *
 
-# Generate a key for encryption/decryption (You should store this securely)
+# Function to generate a key
 def generate_key():
     key = Fernet.generate_key()
     with open("key.key", "wb") as key_file:
         key_file.write(key)
 
-# Load the encryption key
+# Function to load the encryption key
 def load_key():
     return open("key.key", "rb").read()
 
-# Example function to encrypt a password
+# Function to encrypt a password
 def encrypt_password(password):
     key = load_key()
-    f = Fernet(key)
-    encrypted_password = f.encrypt(password.encode())
-    return encrypted_password
+    fernet = Fernet(key)
+    encrypted = fernet.encrypt(password.encode())
+    return encrypted
 
-# Example function to decrypt a password
+# Function to decrypt a password
 def decrypt_password(encrypted_password):
     key = load_key()
-    f = Fernet(key)
-    decrypted_password = f.decrypt(encrypted_password).decode()
-    return decrypted_password
+    fernet = Fernet(key)
+    decrypted = fernet.decrypt(encrypted_password).decode()
+    return decrypted
 
-# Main
-if __name__ == "__main__":
-    generate_key()  # Run this once to generate the key
-    password = "my_secret_password"
-    encrypted = encrypt_password(password)
-    print(f"Encrypted: {encrypted}")
+# GUI setup
+def save_password():
+    website = website_entry.get()
+    password = password_entry.get()
+    encrypted_password = encrypt_password(password)
 
-    decrypted = decrypt_password(encrypted)
-    print(f"Decrypted: {decrypted}")
+    with open("passwords.txt", "a") as file:
+        file.write(f"{website} | {encrypted_password.decode()}\n")
+
+    website_entry.delete(0, END)
+    password_entry.delete(0, END)
+
+def show_passwords():
+    password_list.delete(0, END)
+
+    with open("passwords.txt", "r") as file:
+        for line in file.readlines():
+            website, encrypted_password = line.split(" | ")
+            decrypted_password = decrypt_password(encrypted_password.strip().encode())
+            password_list.insert(END, f"Website: {website}, Password: {decrypted_password}")
+
+# GUI window
+window = Tk()
+window.title("Password Manager")
+
+website_label = Label(window, text="Website:")
+website_label.pack()
+website_entry = Entry(window)
+website_entry.pack()
+
+password_label = Label(window, text="Password:")
+password_label.pack()
+password_entry = Entry(window, show="*")
+password_entry.pack()
+
+save_button = Button(window, text="Save Password", command=save_password)
+save_button.pack()
+
+show_button = Button(window, text="Show Saved Passwords", command=show_passwords)
+show_button.pack()
+
+password_list = Listbox(window)
+password_list.pack()
+
+window.mainloop()
